@@ -1,0 +1,222 @@
+import { useState, useEffect } from 'react';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Youtube, FileText, MessageSquare, Facebook, Watch, Bluetooth, Send } from 'lucide-react';
+import { Progress } from "@/components/ui/progress";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
+
+export default function WorkoutGymApp() {
+  const [activeTab, setActiveTab] = useState('home');
+  const [loggedIn, setLoggedIn] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [loginCode, setLoginCode] = useState('');
+  const [loginAttempts, setLoginAttempts] = useState(0);
+  const [isLocked, setIsLocked] = useState(false);
+  const [lockTimer, setLockTimer] = useState(0);
+  const [isWatchConnected, setIsWatchConnected] = useState(false);
+  const [caloriesBurned, setCaloriesBurned] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [coverPhoto, setCoverPhoto] = useState('https://v0.dev/placeholder.svg?height=400&width=800');
+  const [videoSlides, setVideoSlides] = useState(Array(6).fill(''));
+  const [members, setMembers] = useState([
+    { id: 1, name: 'John Doe', caloriesBurned: 500 },
+    { id: 2, name: 'Jane Smith', caloriesBurned: 750 },
+    { id: 3, name: 'Bob Johnson', caloriesBurned: 600 },
+  ]);
+  const [selectedMembers, setSelectedMembers] = useState([]);
+  const [messageContent, setMessageContent] = useState('');
+  const [exerciseData, setExerciseData] = useState([
+    { name: 'Mon', calories: 400 },
+    { name: 'Tue', calories: 300 },
+    { name: 'Wed', calories: 500 },
+    { name: 'Thu', calories: 450 },
+    { name: 'Fri', calories: 600 },
+    { name: 'Sat', calories: 400 },
+    { name: 'Sun', calories: 350 },
+  ]);
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const handleLogin = () => {
+    if (loginCode === 'wogapple') {
+      setLoggedIn(true);
+      setIsAdmin(true);
+      setLoginAttempts(0);
+    } else {
+      const isCorrectCode = loginCode === '123456'; // Example verification
+
+      if (isCorrectCode) {
+        setLoggedIn(true);
+        setLoginAttempts(0);
+      } else {
+        setLoginAttempts(prev => prev + 1);
+        if (loginAttempts + 1 >= 6) {
+          setIsLocked(true);
+          setLockTimer(300); // 5 minutes in seconds
+        }
+      }
+    }
+  };
+
+  useEffect(() => {
+    let interval;
+    if (isLocked && lockTimer > 0) {
+      interval = setInterval(() => {
+        setLockTimer(prev => prev - 1);
+      }, 1000);
+    } else if (lockTimer === 0) {
+      setIsLocked(false);
+      setLoginAttempts(0);
+    }
+    return () => clearInterval(interval);
+  }, [isLocked, lockTimer]);
+
+  const connectSmartWatch = () => {
+    setIsWatchConnected(true);
+  };
+
+  useEffect(() => {
+    if (isWatchConnected) {
+      const interval = setInterval(() => {
+        setCaloriesBurned(prev => prev + Math.floor(Math.random() * 10));
+      }, 5000);
+      return () => clearInterval(interval);
+    }
+  }, [isWatchConnected]);
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    console.log('Searching for:', searchQuery);
+  };
+
+  const handleCoverPhotoUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setCoverPhoto(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleVideoSlideUpload = (index) => (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setVideoSlides(prev => {
+          const newSlides = [...prev];
+          newSlides[index] = reader.result;
+          return newSlides;
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleMemberSelection = (memberId) => {
+    setSelectedMembers(prev => 
+      prev.includes(memberId)
+        ? prev.filter(id => id !== memberId)
+        : [...prev, memberId]
+    );
+  };
+
+  const sendMessage = () => {
+    console.log('Sending message to:', selectedMembers);
+    console.log('Message content:', messageContent);
+    setMessageContent('');
+    setSelectedMembers([]);
+  };
+
+  const congratulateTopPerformer = () => {
+    const topPerformer = members.reduce((prev, current) => 
+      (prev.caloriesBurned > current.caloriesBurned) ? prev : current
+    );
+    setMessageContent(`Congratulations ${topPerformer.name} for burning the most calories!`);
+    setSelectedMembers([topPerformer.id]);
+  };
+
+  if (!loggedIn) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-100">
+        <Card className="w-[350px]">
+          <CardHeader>
+            <CardTitle className="text-2xl font-bold text-center">Workout Gym</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {isLocked ? (
+                <Alert variant="destructive">
+                  <AlertTitle>Account Locked</AlertTitle>
+                  <AlertDescription>
+                    Too many failed attempts. Please try again in {Math.floor(lockTimer / 60)}:{(lockTimer % 60).toString().padStart(2, '0')} minutes.
+                  </AlertDescription>
+                </Alert>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    <label htmlFor="loginCode" className="text-sm font-medium leading-none">Login Code</label>
+                    <Input
+                      id="loginCode"
+                      placeholder="Enter your login code"
+                      value={loginCode}
+                      onChange={(e) => setLoginCode(e.target.value)}
+                      disabled={isLocked}
+                    />
+                  </div>
+                  <Button className="w-full" onClick={handleLogin} disabled={isLocked}>
+                    Login
+                  </Button>
+                  {loginAttempts > 0 && (
+                    <p className="text-sm text-red-500">
+                      Incorrect code. Attempts remaining: {6 - loginAttempts}
+                    </p>
+                  )}
+                </>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-100">
+      <header className="bg-white shadow">
+        <div className="max-w-7xl mx-auto py-6 px-4 flex justify-between items-center">
+          <h1 className="text-3xl font-bold text-gray-900">Workout Gym</h1>
+          <div className="flex items-center space-x-4">
+            <div className="text-sm text-gray-500">
+              {currentTime.toLocaleString()}
+            </div>
+            {!isAdmin && (
+              <Button
+                onClick={connectSmartWatch}
+                disabled={isWatchConnected}
+                className="flex items-center space-x-2"
+              >
+                <Bluetooth className="h-5 w-5" />
+                <span>{isWatchConnected ? 'Watch Connected' : 'Connect Watch'}</span>
+              </Button>
+            )}
+            {isWatchConnected && !isAdmin && (
+              <div className="flex items-center space-x-2 text-green-600">
+                <Watch className="h-5 w-5" />
+                <span>{caloriesBurned} calories burned</span>
+              </div>
+            )}
+          </div>
+        </div
